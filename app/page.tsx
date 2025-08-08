@@ -1,112 +1,162 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import BookingCalendar from '@/components/BookingCalendar';
-import BookingForm from '@/components/BookingForm';
-import type { TimeSlot, Resource } from '@/types';
+import { useState } from 'react';
+import ResourceSelector from '@/components/ResourceSelector';
+import DatePicker from '@/components/DatePicker';
+import TimeSlotSelector from '@/components/TimeSlotSelector';
+import BookingForm from '@/components/BookingFormNew';
+import Toast from '@/components/ui/Toast';
+import { useToast } from '@/hooks/useToast';
+import type { TimeSlot, CreateBookingResponse } from '@/types/api';
 
 export default function HomePage() {
-  const [resources, setResources] = useState<Resource[]>([]);
   const [selectedResourceId, setSelectedResourceId] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | undefined>();
-  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [resourceName, setResourceName] = useState<string>('');
+  
+  const { toast, showToast, hideToast } = useToast();
 
-  useEffect(() => {
-    fetchResources();
-  }, []);
-
-  const fetchResources = async () => {
-    try {
-      const response = await fetch('/api/resources');
-      if (response.ok) {
-        const data = await response.json();
-        setResources(data);
-        if (data.length > 0) {
-          setSelectedResourceId(data[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('リソース取得エラー:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleResourceSelect = (resourceId: string) => {
+    setSelectedResourceId(resourceId);
+    setSelectedDate(null);
+    setSelectedSlot(null);
+    
+    // リソース名を取得（簡易的に）
+    const resourceNames: Record<string, string> = {
+      '11111111-1111-1111-1111-111111111111': 'A店',
+      '22222222-2222-2222-2222-222222222222': 'B店', 
+      '33333333-3333-3333-3333-333333333333': 'C店'
+    };
+    setResourceName(resourceNames[resourceId] || 'Unknown');
   };
 
-  const handleTimeSlotSelect = (date: string, slot: TimeSlot) => {
+  const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
+    setSelectedSlot(null); // 日付変更時はスロットリセット
+  };
+
+  const handleSlotSelect = (slot: TimeSlot) => {
     setSelectedSlot(slot);
   };
 
-  const selectedResource = resources.find(r => r.id === selectedResourceId);
+  const handleBookingSuccess = (booking: CreateBookingResponse) => {
+    showToast('予約が完了しました！確認メールをお送りしています', 'success');
+    // フォームリセット
+    setSelectedDate(null);
+    setSelectedSlot(null);
+  };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
+  const handleBookingError = (error: string) => {
+    showToast(error, 'error');
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          予約システム
-        </h1>
-        <p className="text-lg text-gray-600">
-          ご希望の日時を選択して予約を行ってください
-        </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* ヒーローセクション */}
+      <div className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              オンライン予約システム
+            </h1>
+            <p className="text-xl text-gray-600 mb-2">
+              簡単3ステップで予約完了
+            </p>
+            <p className="text-gray-500">
+              店舗・日時を選択してご予約ください（営業時間: 9:00-18:00 JST）
+            </p>
+          </div>
+
+          {/* ステップインジケーター */}
+          <div className="mt-12 max-w-3xl mx-auto">
+            <div className="flex items-center justify-center space-x-8">
+              <div className="flex items-center">
+                <div className={`
+                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                  ${selectedResourceId ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'}
+                `}>
+                  1
+                </div>
+                <span className="ml-2 text-sm font-medium">店舗選択</span>
+              </div>
+              <div className="flex-1 h-1 bg-gray-200 rounded">
+                <div className={`
+                  h-full bg-primary-600 rounded transition-all duration-300
+                  ${selectedResourceId ? 'w-full' : 'w-0'}
+                `}></div>
+              </div>
+              <div className="flex items-center">
+                <div className={`
+                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                  ${selectedDate && selectedSlot ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'}
+                `}>
+                  2
+                </div>
+                <span className="ml-2 text-sm font-medium">日時選択</span>
+              </div>
+              <div className="flex-1 h-1 bg-gray-200 rounded">
+                <div className={`
+                  h-full bg-primary-600 rounded transition-all duration-300
+                  ${selectedDate && selectedSlot ? 'w-full' : 'w-0'}
+                `}></div>
+              </div>
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-medium">
+                  3
+                </div>
+                <span className="ml-2 text-sm font-medium">予約確定</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {resources.length === 0 ? (
-        <div className="card p-8 text-center">
-          <p className="text-gray-600">現在、予約可能なリソースがありません。</p>
-        </div>
-      ) : (
-        <>
-          <div className="card p-6">
-            <h2 className="text-xl font-medium text-gray-900 mb-4">
-              リソース選択
-            </h2>
-            <select
-              value={selectedResourceId}
-              onChange={(e) => {
-                setSelectedResourceId(e.target.value);
-                setSelectedDate('');
-                setSelectedSlot(undefined);
-              }}
-              className="form-input max-w-md"
-            >
-              {resources.map((resource) => (
-                <option key={resource.id} value={resource.id}>
-                  {resource.name}
-                  {resource.description && ` - ${resource.description}`}
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* メインコンテンツ */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Step 1: リソース選択 */}
+        <ResourceSelector
+          selectedResourceId={selectedResourceId}
+          onResourceSelect={handleResourceSelect}
+        />
 
+        {/* Step 2: 日時選択 */}
+        {selectedResourceId && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div>
-              <BookingCalendar
-                resourceId={selectedResourceId}
-                onTimeSlotSelect={handleTimeSlotSelect}
-                selectedSlot={selectedSlot}
-              />
-            </div>
+            <DatePicker
+              selectedDate={selectedDate}
+              onDateSelect={handleDateSelect}
+            />
             
-            <div>
-              <BookingForm
-                resourceId={selectedResourceId}
-                resourceName={selectedResource?.name || ''}
-                selectedDate={selectedDate}
-                selectedSlot={selectedSlot}
-              />
-            </div>
+            <TimeSlotSelector
+              resourceId={selectedResourceId}
+              selectedDate={selectedDate}
+              selectedSlot={selectedSlot}
+              onSlotSelect={handleSlotSelect}
+            />
           </div>
-        </>
-      )}
+        )}
+
+        {/* Step 3: 予約フォーム */}
+        {selectedResourceId && (
+          <BookingForm
+            resourceId={selectedResourceId}
+            resourceName={resourceName}
+            selectedDate={selectedDate}
+            selectedSlot={selectedSlot}
+            onSuccess={handleBookingSuccess}
+            onError={handleBookingError}
+          />
+        )}
+      </div>
+
+      {/* トースト通知 */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        show={toast.show}
+        onClose={hideToast}
+      />
     </div>
   );
 }
