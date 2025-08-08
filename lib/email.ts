@@ -2,7 +2,7 @@ import 'server-only';
 import { Resend } from 'resend';
 import sgMail from '@sendgrid/mail';
 import type { BookingNotification, EmailConfig } from '@/types';
-import { toJSTString } from '@/utils/time';
+import { utcToTokyoIso } from './time-utils';
 
 const emailConfig: EmailConfig = {
   provider: (process.env.EMAIL_PROVIDER as 'resend' | 'sendgrid') || 'resend',
@@ -103,8 +103,8 @@ async function sendWithSendGrid({
 }
 
 function generateBookingEmail(notification: BookingNotification): string {
-  const startJST = toJSTString(notification.startTime);
-  const endJST = toJSTString(notification.endTime);
+  const startJST = utcToTokyoIso(new Date(notification.startTime));
+  const endJST = utcToTokyoIso(new Date(notification.endTime));
 
   return `
     <!DOCTYPE html>
@@ -150,8 +150,8 @@ function generateBookingEmail(notification: BookingNotification): string {
 }
 
 function generateBookingEmailText(notification: BookingNotification): string {
-  const startJST = toJSTString(notification.startTime);
-  const endJST = toJSTString(notification.endTime);
+  const startJST = utcToTokyoIso(new Date(notification.startTime));
+  const endJST = utcToTokyoIso(new Date(notification.endTime));
 
   return `
 予約確認

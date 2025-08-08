@@ -1,64 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/database';
-import { generateTimeSlots } from '@/utils/time';
-import { availabilitySchema } from '@/lib/validations';
-import type { AvailabilityResponse, ApiResponse } from '@/types';
+import { bookingService, BookingError } from '@/lib/booking-service';
+import { availabilityQuerySchema } from '@/lib/validations';
+import { API_ERROR_CODES } from '@/types/api';
+import type { ApiErrorResponse, ApiSuccessResponse, AvailabilityResponse } from '@/types/api';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const resource_id = searchParams.get('resource_id');
+    const resourceId = searchParams.get('resourceId');
     const date = searchParams.get('date');
 
-    if (!resource_id || !date) {
-      return NextResponse.json(
-        { success: false, error: 'resource_idとdateパラメータが必要です' } as ApiResponse<never>,
-        { status: 400 }
-      );
+    // パラメータ存在確認
+    if (!resourceId || !date) {
+      const errorResponse: ApiErrorResponse = {
+        error: {
+          code: API_ERROR_CODES.INVALID_REQUEST,
+          message: 'resourceIdとdateパラメータが必要です',
+        },
+      };
+      return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    const validationResult = availabilitySchema.safeParse({ resource_id, date });
+    // バリデーション
+    const validationResult = availabilityQuerySchema.safeParse({ resourceId, date });
     if (!validationResult.success) {
-      return NextResponse.json(
-        { success: false, error: validationResult.error.issues[0].message } as ApiResponse<never>,
-        { status: 400 }
-      );
+      const errorResponse: ApiErrorResponse = {
+        error: {
+          code: API_ERROR_CODES.INVALID_REQUEST,
+          message: validationResult.error.issues[0].message,
+        },
+      };
+      return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    const resource = await db.getResource(resource_id);
-    if (!resource) {
-      return NextResponse.json(
-        { success: false, error: 'リソースが見つかりません' } as ApiResponse<never>,
-        { status: 404 }
-      );
-    }
+    // 空き状況取得
+    const availability = await bookingService.getAvailability(resourceId, date);
 
-    const startOfDay = `${date}T00:00:00Z`;
-    const endOfDay = `${date}T23:59:59Z`;
-    
-    const existingBookings = await db.getBookingsByDateRange(
-      resource_id,
-      startOfDay,
-      endOfDay
-    );
-
-    const slots = generateTimeSlots(date, existingBookings);
-
-    const response: AvailabilityResponse = {
-      date,
-      resource_id,
-      slots
+    const successResponse: ApiSuccessResponse<AvailabilityResponse> = {
+      data: availability,
     };
 
-    return NextResponse.json(
-      { success: true, data: response } as ApiResponse<AvailabilityResponse>
-    );
+    return NextResponse.json(successResponse);
 
   } catch (error) {
     console.error('Availability API Error:', error);
-    return NextResponse.json(
-      { success: false, error: '空き状況の取得に失敗しました' } as ApiResponse<never>,
-      { status: 500 }
-    );
+
+    // カスタムエラーハンドリング
+    if (error instanceof BookingError) {
+      const errorResponse: ApiErrorResponse = {
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      };
+
+      const statusCode = error.code === API_ERROR_CODES.RESOURCE_NOT_FOUND ? 404 : 400;
+      return NextResponse.json(errorResponse, { status: statusCode });
+    }
+
+    // 予期しないエラー
+    const errorResponse: ApiErrorResponse = {
+      error: {
+        code: API_ERROR_CODES.INTERNAL_SERVER_ERROR,
+        message: '空き状況の取得に失敗しました',
+      },
+    };
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
