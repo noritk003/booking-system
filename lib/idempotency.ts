@@ -21,7 +21,9 @@ function cleanupExpiredKeys(): void {
   const now = new Date();
   const expiredKeys: string[] = [];
   
-  for (const [key, record] of idempotencyStore.entries()) {
+  // Map.entries()をArray.from()で配列に変換
+  const entries = Array.from(idempotencyStore.entries());
+  for (const [key, record] of entries) {
     const hoursDiff = (now.getTime() - record.createdAt.getTime()) / (1000 * 60 * 60);
     if (hoursDiff > EXPIRY_HOURS) {
       expiredKeys.push(key);
