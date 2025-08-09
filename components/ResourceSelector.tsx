@@ -32,11 +32,18 @@ export default function ResourceSelector({
         const response = await fetch('/api/resources');
         const result = await response.json();
 
-        if (result.error) {
-          throw new Error(result.error.message || 'リソースの取得に失敗しました');
+        if (!response.ok) {
+          throw new Error(result.error?.message || 'リソースの取得に失敗しました');
         }
 
-        setResources(result.data || []);
+        // 新しいAPI形式に対応
+        const resourcesData = result.data || [];
+        setResources(resourcesData);
+        
+        // 警告がある場合は表示
+        if (result.warning) {
+          console.warn('⚠️ リソース取得警告:', result.warning);
+        }
         
         // 初期選択（まだ選択されていない場合）
         if (!selectedResourceId && result.data?.length > 0) {

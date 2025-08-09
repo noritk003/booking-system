@@ -133,6 +133,25 @@ export function isValidTimeSlot(startAtLocal: string, endAtLocal: string): boole
 }
 
 /**
+ * 指定日の時間スロット生成（APIレスポンス用）
+ */
+export function generateTimeSlots(dateStr: string): Array<{
+  startAtLocal: string;
+  endAtLocal: string;
+  startAt: string;
+  endAt: string;
+}> {
+  const daySlots = generateDaySlots(dateStr);
+  
+  return daySlots.map(slot => ({
+    startAtLocal: slot.startAtLocal,
+    endAtLocal: slot.endAtLocal,
+    startAt: slot.startAt.toISOString(),
+    endAt: slot.endAt.toISOString()
+  }));
+}
+
+/**
  * 予約データから時間重複をチェックするユーティリティ
  */
 export function hasTimeOverlap(
