@@ -96,7 +96,7 @@ export function generateDaySlots(dateStr: string): Array<{
 /**
  * 時間スロットが有効かチェック（15分単位、営業時間内）
  */
-export function isValidTimeSlot(startAtLocal: string, endAtLocal: string): boolean {
+export function isValidTimeSlot(startAtLocal: string, endAtLocal: string, skipFutureCheck = false): boolean {
   try {
     const start = parseISO(startAtLocal);
     const end = parseISO(endAtLocal);
@@ -104,30 +104,37 @@ export function isValidTimeSlot(startAtLocal: string, endAtLocal: string): boole
     // 15分ちょうどかチェック
     const durationMs = end.getTime() - start.getTime();
     if (durationMs !== SLOT_DURATION_MINUTES * 60 * 1000) {
+      console.warn(`⚠️ 時間スロット長さエラー: ${durationMs}ms (期待値: ${SLOT_DURATION_MINUTES * 60 * 1000}ms)`);
       return false;
     }
     
     // 15分の境界にアライメントされているかチェック
     const startMinutes = start.getMinutes();
     if (startMinutes % SLOT_DURATION_MINUTES !== 0) {
+      console.warn(`⚠️ 時間スロット境界エラー: ${startMinutes}分 (15分境界に未対応)`);
       return false;
     }
     
     // 営業時間内かチェック（Asia/Tokyo基準）
     const startHour = start.getHours();
     if (startHour < BUSINESS_START_HOUR || startHour >= BUSINESS_END_HOUR) {
+      console.warn(`⚠️ 営業時間外エラー: ${startHour}時 (営業時間: ${BUSINESS_START_HOUR}-${BUSINESS_END_HOUR}時)`);
       return false;
     }
     
-    // 未来の時刻かチェック
-    const nowUtc = new Date();
-    const startUtc = tokyoIsoToUtc(startAtLocal);
-    if (!isAfter(startUtc, nowUtc)) {
-      return false;
+    // 未来の時刻かチェック（デモモードでは無効化）
+    if (!skipFutureCheck) {
+      const nowUtc = new Date();
+      const startUtc = tokyoIsoToUtc(startAtLocal);
+      if (!isAfter(startUtc, nowUtc)) {
+        console.warn(`⚠️ 過去時刻エラー: ${startAtLocal} (現在時刻より過去)`);
+        return false;
+      }
     }
     
     return true;
-  } catch {
+  } catch (error) {
+    console.warn('⚠️ 時間スロットバリデーションエラー:', error);
     return false;
   }
 }

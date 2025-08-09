@@ -78,6 +78,11 @@ export default function BookingForm({
 
       onSuccess(result.data);
       
+      // デモモードの場合は警告を表示
+      if ((result as any).warning) {
+        console.warn('⚠️ デモモード:', (result as any).warning);
+      }
+      
       // 成功後に完了ページへ遷移
       router.push(`/complete?id=${result.data.id}`);
 

@@ -78,9 +78,18 @@ export async function POST(request: NextRequest) {
 
     const successResponse: ApiSuccessResponse<CreateBookingResponse> = {
       data: booking,
+      // デモモードの場合は警告を表示
+      ...(booking.id.startsWith('demo-') && { 
+        warning: 'デモモードで予約が作成されました。実際のデータベースには保存されていません。' 
+      })
     };
 
-    console.log('✅ 予約作成完了:', createSafeLogObject({ bookingId: booking.id, resourceId: booking.resourceId }));
+    console.log('✅ 予約作成完了:', createSafeLogObject({ 
+      bookingId: booking.id, 
+      resourceId: booking.resourceId,
+      isDemoMode: booking.id.startsWith('demo-')
+    }));
+    
     return createSecureResponse(successResponse, 201);
 
     } catch (error) {
