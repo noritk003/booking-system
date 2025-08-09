@@ -11,9 +11,20 @@ export const createBookingSchema = z.object({
   resourceId: z.string().uuid('リソースIDが無効です'),
   startAtLocal: z.string().datetime('開始時刻の形式が無効です'),
   endAtLocal: z.string().datetime('終了時刻の形式が無効です'),
-  email: z.string().email('有効なメールアドレスを入力してください'),
-  name: z.string().max(100, '名前は100文字以内で入力してください').optional(),
+  email: z.string().email('有効なメールアドレスを入力してください').max(254, 'メールアドレスが長すぎます'),
+  name: z.string().min(1, '名前を入力してください').max(100, '名前は100文字以内で入力してください').optional(),
 });
+
+// 管理者認証のバリデーション
+export const adminAuthSchema = z.object({
+  password: z.string().min(8, 'パスワードは8文字以上で入力してください').max(128, 'パスワードが長すぎます'),
+});
+
+// セキュリティヘッダーのバリデーション
+export const idempotencyKeySchema = z.string()
+  .min(32, 'Idempotency keyは32文字以上である必要があります')
+  .max(255, 'Idempotency keyが長すぎます')
+  .regex(/^[a-zA-Z0-9-_]+$/, 'Idempotency keyに無効な文字が含まれています');
 
 // 予約キャンセルのバリデーション
 export const cancelBookingParamsSchema = z.object({

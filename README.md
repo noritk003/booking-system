@@ -180,47 +180,224 @@ npm run test:e2e
 npm run test:e2e:ui
 \`\`\`
 
-## Vercelデプロイ
+## Vercelデプロイ手順
 
-### 1. Vercel CLI インストール
+### 1. GitHub/GitLab連携でプロジェクトをインポート
 
-\`\`\`bash
-npm i -g vercel
+#### 1-1. Vercelダッシュボードでプロジェクト作成
+1. [Vercel Dashboard](https://vercel.com/dashboard)にアクセス
+2. **「Add New...」** → **「Project」**をクリック
+3. **「Import Git Repository」**でリポジトリを選択
+4. **「Import」**をクリック
+
+#### 1-2. デプロイ設定
+- **Framework Preset**: \`Next.js\` を選択（自動検出）
+- **Build and Output Settings**:
+  - **Build Command**: \`npm run build\` （デフォルトのまま）
+  - **Output Directory**: \`.next\` （デフォルトのまま）
+  - **Install Command**: \`npm ci\` （デフォルトのまま）
+
+### 2. 環境変数の設定
+
+**重要**: ProductionとPreview両方に設定する必要があります。
+
+#### 2-1. 設定箇所
+1. Vercelプロジェクトの **「Settings」** → **「Environment Variables」**
+2. 各環境変数を **Production** と **Preview** の両方にチェック ✅
+
+#### 2-2. 必須環境変数
+
+| 環境変数名 | 値の例 | Environment |
+|-----------|-------|-------------|
+| \`NEXT_PUBLIC_SUPABASE_URL\` | \`https://xxxxx.supabase.co\` | Production + Preview |
+| \`NEXT_PUBLIC_SUPABASE_ANON_KEY\` | \`eyJhbGc...\` | Production + Preview |
+| \`SUPABASE_SERVICE_ROLE_KEY\` | \`eyJhbGc...\` | Production + Preview |
+| \`ADMIN_EMAIL\` | \`admin@yourdomain.com\` | Production + Preview |
+| \`PUBLIC_SITE_URL\` | \`https://yourdomain.vercel.app\` | Production + Preview |
+
+#### 2-3. メール送信設定（いずれか選択）
+
+**Resend使用時:**
+\`\`\`
+RESEND_API_KEY=re_xxxxxxxxxx
 \`\`\`
 
-### 2. プロジェクトデプロイ
-
-\`\`\`bash
-vercel
+**SendGrid使用時:**
+\`\`\`
+SENDGRID_API_KEY=SG.xxxxxxxxxx
 \`\`\`
 
-### 3. 環境変数の設定
+#### 2-4. セキュリティ注意点
+⚠️ **\`SUPABASE_SERVICE_ROLE_KEY\`は管理者権限を持つため要注意**
+- サーバーサイドでのみ利用
+- RLS（Row Level Security）をバイパス可能
+- 絶対に公開リポジトリにコミットしない
 
-Vercelダッシュボードで以下を設定：
+### 3. 初回デプロイ実行
 
-**重要**: セキュリティのため、公開キーと秘密キーを区別して設定
+1. **「Deploy」**ボタンをクリック
+2. ビルドログを確認（通常2-3分で完了）
+3. デプロイ完了後、Vercel URLでアクセス確認
 
-#### 公開される環境変数（フロントエンドで利用）
-- \`NEXT_PUBLIC_SUPABASE_URL\`
-- \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`
+### 4. データベースセットアップ
 
-#### 秘密の環境変数（サーバーサイドのみ）
-- \`SUPABASE_SERVICE_ROLE_KEY\` ⚠️ **絶対にフロントエンドに露出させない**
-- \`RESEND_API_KEY\` または \`SENDGRID_API_KEY\`
-- \`EMAIL_PROVIDER\`
-- \`FROM_EMAIL\`
+#### 4-1. Supabase SQL Editorでスキーマ作成
 
-### 4. デプロイ設定
+1. [Supabase Dashboard](https://app.supabase.com/)にアクセス
+2. 該当プロジェクトの **「SQL Editor」**を開く
+3. **「New query」**で以下のSQLを実行：
 
-- **Runtime**: Node.js（Edgeランタイムは不要）
-- **Build Command**: \`npm run build\`
-- **Output Directory**: \`.next\`
+\`\`\`sql
+-- 1. 拡張機能を有効化
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "btree_gist";
 
-### 5. データベースアクセス
+-- 2. リソーステーブル
+CREATE TABLE resources (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-Vercel デプロイ後、Supabaseの**Connection Pooler**を使用することを推奨：
-- **Transaction Mode**: 短期間のAPIコール用
-- **Session Mode**: 長時間の処理用
+-- 3. 予約テーブル
+CREATE TABLE bookings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  resource_id UUID NOT NULL REFERENCES resources(id),
+  email VARCHAR(255) NOT NULL,
+  name VARCHAR(255),
+  start_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  end_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  start_at_local VARCHAR(50) NOT NULL,
+  end_at_local VARCHAR(50) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'canceled')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  -- 重複予約を防ぐEXCLUDE制約
+  EXCLUDE USING gist (
+    resource_id WITH =,
+    tsrange(start_at, end_at, '[)') WITH &&
+  ) WHERE (status = 'confirmed')
+);
+
+-- 4. インデックス作成
+CREATE INDEX idx_bookings_resource_time ON bookings(resource_id, start_at, end_at);
+CREATE INDEX idx_bookings_status ON bookings(status);
+CREATE INDEX idx_bookings_email ON bookings(email);
+
+-- 5. RLS (Row Level Security) 設定
+ALTER TABLE resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+
+-- 6. RLSポリシー設定（全ユーザー読み取り可能）
+CREATE POLICY "Resources are viewable by everyone" ON resources FOR SELECT USING (true);
+CREATE POLICY "Bookings are viewable by everyone" ON bookings FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert bookings" ON bookings FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update their bookings" ON bookings FOR UPDATE USING (true);
+
+-- 7. サンプルデータ挿入
+INSERT INTO resources (id, name, description) VALUES 
+('11111111-1111-1111-1111-111111111111', 'A店', '営業時間: 9:00-18:00 / 定員: 4名'),
+('22222222-2222-2222-2222-222222222222', 'B店', '営業時間: 9:00-18:00 / 定員: 6名'),
+('33333333-3333-3333-3333-333333333333', 'C店', '営業時間: 10:00-17:00 / 定員: 2名');
+\`\`\`
+
+#### 4-2. スキーマ適用確認
+
+1. **「Tables」**タブで \`resources\` と \`bookings\` テーブルが作成されていることを確認
+2. **「Authentication」** → **「Policies」**でRLSポリシーが設定されていることを確認
+
+### 5. カスタムドメイン接続（オプション）
+
+#### 5-1. ドメイン追加
+1. Vercelプロジェクトの **「Settings」** → **「Domains」**
+2. **「Add」**で独自ドメインを追加
+3. DNS設定でCNAMEレコードを設定：
+   \`\`\`
+   CNAME  yourdomain.com  cname.vercel-dns.com
+   \`\`\`
+
+#### 5-2. HTTPS自動設定
+- Vercelが自動的にSSL証明書を発行
+- Let's Encryptによる無料HTTPS対応
+- 証明書の自動更新
+
+#### 5-3. 環境変数の更新
+カスタムドメイン設定後、\`PUBLIC_SITE_URL\`を更新：
+\`\`\`
+PUBLIC_SITE_URL=https://yourdomain.com
+\`\`\`
+
+### 6. デプロイ確認
+
+#### 6-1. 動作確認項目
+- [ ] トップページの表示
+- [ ] リソース選択機能
+- [ ] 日付・時間選択機能
+- [ ] 予約フォーム送信
+- [ ] 管理画面アクセス（\`/admin\`）
+- [ ] メール送信テスト（実際の予約作成）
+
+#### 6-2. ログ確認
+1. Vercelダッシュボードの **「Functions」** → **「View Function Logs」**
+2. エラーがないことを確認
+3. Supabaseダッシュボードの **「Logs」**でDB接続を確認
+
+### 7. 失敗時のロールバック方法
+
+#### 7-1. 前のデプロイに戻す
+1. Vercelプロジェクトの **「Deployments」**タブ
+2. 正常に動作していた過去のデプロイを選択
+3. **「...」** → **「Promote to Production」**をクリック
+4. **「Promote」**で確定
+
+#### 7-2. 緊急時の手動ロールバック
+\`\`\`bash
+# Vercel CLIを使用
+vercel --prod --promote [deployment-url]
+
+# 特定のコミットにロールバック
+git revert [commit-hash]
+git push origin main  # Vercelが自動再デプロイ
+\`\`\`
+
+#### 7-3. 環境変数の問題時
+1. **「Settings」** → **「Environment Variables」**
+2. 問題のある環境変数を **「Edit」**または**「Delete」**
+3. **「Redeploy」**を実行
+
+### 8. 本番運用のベストプラクティス
+
+#### 8-1. モニタリング設定
+\`\`\`bash
+# Vercel Analytics有効化
+npm i @vercel/analytics
+
+# Speed Insights有効化  
+npm i @vercel/speed-insights
+\`\`\`
+
+#### 8-2. セキュリティ対策
+- [ ] Supabase RLS設定確認
+- [ ] 管理画面のBasic認証設定
+- [ ] 環境変数の適切な管理
+- [ ] HTTPS強制設定
+
+#### 8-3. パフォーマンス最適化
+- [ ] Supabase Connection Pooling有効化
+- [ ] Vercel Edge Caching設定
+- [ ] 画像最適化設定
+
+### 9. トラブルシューティング
+
+| エラー内容 | 原因 | 解決方法 |
+|-----------|------|---------|  
+| \`Build failed\` | 環境変数未設定 | Production/Preview両方に環境変数を設定 |
+| \`Database connection failed\` | Supabase設定エラー | URLとキーを再確認、RLS設定チェック |
+| \`Email sending failed\` | メールプロバイダー設定エラー | API キーとドメイン認証を確認 |
+| \`Function timeout\` | API処理時間超過 | クエリ最適化、Connection Pool利用 |
 
 ## トラブルシューティング
 

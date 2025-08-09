@@ -48,7 +48,10 @@ export interface ApiSuccessResponse<T> {
   data: T;
 }
 
-export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
+export type ApiResponse<T> = {
+  data?: T;
+  error?: ApiError;
+};
 
 // エラーコード定数
 export const API_ERROR_CODES = {

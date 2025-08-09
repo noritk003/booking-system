@@ -1,15 +1,58 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Link from 'next/link';
+import Logo from '@/components/Logo';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://booking-system.vercel.app'),
   title: '予約システム | オンライン予約管理',
-  description: 'リソース予約システム - 店舗やサービスの予約をオンラインで簡単管理。15分刻みの時間予約、リアルタイム空き状況確認対応。',
-  keywords: ['予約システム', 'オンライン予約', '時間管理', 'リソース管理'],
-  viewport: 'width=device-width, initial-scale=1',
+  description: 'Next.js 14 + Supabaseで構築された企業級予約管理システム。15分刻みの時間予約、リアルタイム空き状況確認、競合防止機能を搭載。',
+  keywords: ['予約システム', 'オンライン予約', '時間管理', 'リソース管理', 'Next.js', 'Supabase'],
+  authors: [{ name: 'Booking System Team' }],
+  creator: 'Booking System',
+  publisher: 'Booking System',
+  openGraph: {
+    type: 'website',
+    locale: 'ja_JP',
+    url: 'https://booking-system.vercel.app',
+    title: '予約システム | 企業級オンライン予約管理',
+    description: 'Next.js 14 + Supabaseで構築された企業級予約管理システム',
+    siteName: '予約システム',
+    images: [
+      {
+        url: '/api/og',
+        width: 1200,
+        height: 630,
+        alt: '予約システム - 企業級オンライン予約管理',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '予約システム | 企業級オンライン予約管理',
+    description: 'Next.js 14 + Supabaseで構築された企業級予約管理システム',
+    images: ['/api/og?type=twitter'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#4f46e5',
 };
 
 export default function RootLayout({
@@ -36,7 +79,7 @@ export default function RootLayout({
                     href="/"
                     className="text-xl font-bold text-gray-900 hover:text-primary-700 transition-colors"
                   >
-                    <h1>予約システム</h1>
+                    <Logo size="sm" />
                   </Link>
                 </div>
                 <div className="flex items-center space-x-4">
@@ -46,6 +89,13 @@ export default function RootLayout({
                     aria-label="予約ページに移動"
                   >
                     予約
+                  </Link>
+                  <Link
+                    href="/about"
+                    className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                    aria-label="技術詳細ページに移動"
+                  >
+                    技術詳細
                   </Link>
                   <Link
                     href="/admin"
@@ -71,6 +121,9 @@ export default function RootLayout({
               </div>
             </div>
           </footer>
+          
+          {/* Web App Manifest */}
+          <link rel="manifest" href="/manifest.json" />
         </div>
       </body>
     </html>

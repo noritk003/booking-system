@@ -35,7 +35,7 @@ export default function TimeSlotSelector({
         setLoading(true);
         setError(null);
         
-        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+        const dateStr = format(selectedDate!, 'yyyy-MM-dd');
         const response = await fetch(`/api/availability?resourceId=${resourceId}&date=${dateStr}`);
         const result: ApiResponse<AvailabilityResponse> = await response.json();
 

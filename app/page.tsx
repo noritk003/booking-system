@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import HeroSection from '@/components/HeroSection';
 import ResourceSelector from '@/components/ResourceSelector';
 import DatePicker from '@/components/DatePicker';
 import TimeSlotSelector from '@/components/TimeSlotSelector';
@@ -54,22 +55,22 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ヒーローセクション */}
-      <div className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              オンライン予約システム
-            </h1>
-            <p className="text-xl text-gray-600 mb-2">
+      <HeroSection />
+
+      {/* 予約セクション */}
+      <div id="booking-section" className="bg-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
               簡単3ステップで予約完了
-            </p>
-            <p className="text-gray-500">
+            </h2>
+            <p className="text-gray-600">
               店舗・日時を選択してご予約ください（営業時間: 9:00-18:00 JST）
             </p>
           </div>
 
           {/* ステップインジケーター */}
-          <div className="mt-12 max-w-3xl mx-auto">
+          <div className="max-w-3xl mx-auto mb-12">
             <div className="flex items-center justify-center space-x-8">
               <div className="flex items-center">
                 <div className={`

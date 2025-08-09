@@ -33,14 +33,26 @@ export default function AdminPage() {
     }
   }, []);
 
-  const handleLogin = () => {
-    // 簡易パスワード（本番ではより安全な方法を使用）
-    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD || password === 'admin123') {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('admin_authenticated', 'true');
-      fetchBookings();
-    } else {
-      showToast('パスワードが間違っています', 'error');
+  const handleLogin = async () => {
+    try {
+      // サーバーサイドでのパスワード認証
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      if (response.ok) {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('admin_authenticated', 'true');
+        fetchBookings();
+      } else {
+        showToast('パスワードが間違っています', 'error');
+      }
+    } catch (error) {
+      showToast('認証に失敗しました', 'error');
     }
   };
 

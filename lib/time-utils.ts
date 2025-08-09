@@ -38,7 +38,7 @@ export function tokyoIsoToUtc(tokyoIsoString: string): Date {
  */
 export function utcToTokyoIso(utcDate: Date): string {
   const tokyoDate = utcToZonedTime(utcDate, TOKYO_TIMEZONE);
-  return format(tokyoDate, "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: TOKYO_TIMEZONE });
+  return format(tokyoDate, "yyyy-MM-dd'T'HH:mm:ssXXX");
 }
 
 /**
@@ -83,8 +83,8 @@ export function generateDaySlots(dateStr: string): Array<{
     slots.push({
       startAt: startAtUtc,
       endAt: endAtUtc,
-      startAtLocal: format(currentTokyo, "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: TOKYO_TIMEZONE }),
-      endAtLocal: format(nextTokyo, "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: TOKYO_TIMEZONE }),
+      startAtLocal: format(currentTokyo, "yyyy-MM-dd'T'HH:mm:ssXXX"),
+      endAtLocal: format(nextTokyo, "yyyy-MM-dd'T'HH:mm:ssXXX"),
     });
     
     currentTokyo = nextTokyo;

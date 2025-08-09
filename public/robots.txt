@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /about
+Disallow: /admin
+Disallow: /api/
+Disallow: /cancel/
+
+Sitemap: https://booking-system.vercel.app/sitemap.xml

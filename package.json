@@ -9,7 +9,11 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:load": "node scripts/load-test.js",
+    "test:k6": "k6 run scripts/k6-load-test.js",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:check-env": "grep -r 'NEXT_PUBLIC_.*_KEY\\|NEXT_PUBLIC_.*_SECRET' --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' . || echo 'No secret exposure found'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.5",
