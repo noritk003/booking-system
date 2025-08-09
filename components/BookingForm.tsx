@@ -44,8 +44,8 @@ export default function BookingForm({
         customer_name: formData.customer_name,
         customer_email: formData.customer_email,
         customer_phone: formData.customer_phone || undefined,
-        start_time: toUTCString(selectedSlot.start),
-        end_time: toUTCString(selectedSlot.end),
+        start_at: toUTCString(selectedSlot.start),
+        end_at: toUTCString(selectedSlot.end),
         notes: formData.notes || undefined,
       };
 

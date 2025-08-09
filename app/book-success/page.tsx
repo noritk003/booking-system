@@ -122,7 +122,7 @@ export default function BookSuccessPage() {
           <div>
             <dt className="text-sm font-medium text-gray-500">予約日時</dt>
             <dd className="mt-1 text-sm text-gray-900">
-              {toJSTString(booking.start_time)} ～ {toJSTString(booking.end_time).split(' ')[1]}
+              {toJSTString(booking.start_at)} ～ {toJSTString(booking.end_at).split(' ')[1]}
             </dd>
           </div>
           {booking.notes && (

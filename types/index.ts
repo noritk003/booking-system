@@ -12,8 +12,8 @@ export interface Booking {
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
-  start_time: string; // ISO string in UTC
-  end_time: string; // ISO string in UTC
+  start_at: string; // ISO string in UTC
+  end_at: string; // ISO string in UTC
   status: 'confirmed' | 'cancelled';
   notes?: string;
   created_at: string;
@@ -32,8 +32,8 @@ export interface BookingFormData {
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
-  start_time: string;
-  end_time: string;
+  start_at: string;
+  end_at: string;
   notes?: string;
 }
 

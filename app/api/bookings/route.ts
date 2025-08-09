@@ -63,7 +63,10 @@ export async function POST(request: NextRequest) {
           console.log(`📧 メール送信結果 (予約ID: ${booking.id}):`, {
             userEmail: emailResult.userEmailSent ? '✅' : '❌',
             adminEmail: emailResult.adminEmailSent ? '✅' : '❌',
-            // メールアドレスをログに記録しない
+            resendConfigured: !!process.env.RESEND_API_KEY,
+            sendgridConfigured: !!process.env.SENDGRID_API_KEY,
+            adminEmailConfigured: !!process.env.ADMIN_EMAIL,
+            publicSiteUrlConfigured: !!process.env.PUBLIC_SITE_URL,
           });
         } else {
           console.warn(`⚠️ リソースが見つかりません`, createSafeLogObject({ bookingId: booking.id, resourceId: booking.resourceId }));
@@ -71,9 +74,21 @@ export async function POST(request: NextRequest) {
       } catch (emailError) {
         console.error(`❌ メール送信エラー（予約は成立済み） (予約ID: ${booking.id}):`, 
           emailError instanceof Error ? emailError.message : 'Unknown error');
+        console.error(`❌ メール設定状況:`, {
+          resendConfigured: !!process.env.RESEND_API_KEY,
+          sendgridConfigured: !!process.env.SENDGRID_API_KEY,
+          adminEmailConfigured: !!process.env.ADMIN_EMAIL,
+          publicSiteUrlConfigured: !!process.env.PUBLIC_SITE_URL,
+        });
       }
     } else {
       console.warn('⚠️ メールサービスが設定されていません。RESEND_API_KEY または SENDGRID_API_KEY を設定してください。');
+      console.warn(`📝 現在の環境変数設定:`, {
+        resendConfigured: !!process.env.RESEND_API_KEY,
+        sendgridConfigured: !!process.env.SENDGRID_API_KEY,
+        adminEmailConfigured: !!process.env.ADMIN_EMAIL,
+        publicSiteUrlConfigured: !!process.env.PUBLIC_SITE_URL,
+      });
     }
 
     const successResponse: ApiSuccessResponse<CreateBookingResponse> = {

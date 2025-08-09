@@ -34,8 +34,8 @@ export function generateTimeSlots(date: string, existingBookings: Booking[]): Ti
     const slotEnd = addMinutes(currentTime, SLOT_DURATION);
     
     const isBooked = existingBookings.some(booking => {
-      const bookingStart = parseISO(booking.start_time);
-      const bookingEnd = parseISO(booking.end_time);
+      const bookingStart = parseISO(booking.start_at);
+      const bookingEnd = parseISO(booking.end_at);
       
       return (
         (currentTime >= bookingStart && currentTime < bookingEnd) ||
